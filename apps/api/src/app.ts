@@ -120,6 +120,7 @@ export function buildApp(): FastifyInstance {
   });
 
   app.register(helmet, {
+    hsts: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -130,6 +131,7 @@ export function buildApp(): FastifyInstance {
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
+        upgradeInsecureRequests: null,
       },
     },
     crossOriginEmbedderPolicy: false,
