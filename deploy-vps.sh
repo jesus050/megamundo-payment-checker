@@ -59,7 +59,7 @@ echo "⚙️ Configurando variables de entorno (.env)..."
 cat << 'EOF' > .env
 DATABASE_URL="postgresql://megamundo_user:MegamundoDb2026_SecurePass!@localhost:5432/megamundo_payments?schema=public"
 APP_SECRET="megamundo-super-secure-production-jwt-key-2026-vps-99"
-ALLOWED_ORIGINS="*"
+ALLOWED_ORIGINS="http://2.24.217.4,http://localhost,http://localhost:3001"
 PORT=3001
 HOST=0.0.0.0
 NODE_ENV=production
@@ -88,7 +88,7 @@ npm run db:seed
 echo "🚀 Levantando aplicación con PM2..."
 pm2 stop megamundo-pagos 2>/dev/null || true
 pm2 delete megamundo-pagos 2>/dev/null || true
-pm2 start npm --name "megamundo-pagos" -- run start --workspace=@megamundo/api
+pm2 start apps/api/dist/server.js --name "megamundo-pagos" --cwd /var/www/megamundo-payment-checker
 pm2 save
 pm2 startup systemd -u root --hp /root || true
 
