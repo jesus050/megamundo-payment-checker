@@ -79,6 +79,7 @@ EOF
 # 7. Compilar proyecto y sincronizar base de datos
 echo "🔨 Compilando proyecto y ejecutando migraciones..."
 npm install
+npx prisma generate --schema=packages/database/prisma/schema.prisma
 npm run build
 npx prisma db push --schema=packages/database/prisma/schema.prisma
 npm run db:seed
