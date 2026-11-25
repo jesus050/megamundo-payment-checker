@@ -1,0 +1,191 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum BusinessStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserRole {
+  ADMIN
+  CASHIER
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SaleStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REFUNDED
+  ERROR
+}
+
+enum EventProcessingStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED_DUPLICATE
+  FAILED
+}
+
+model Business {
+  id              String           @id @default(uuid())
+  name            String
+  status          BusinessStatus   @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  users           User[]
+  paymentAccounts PaymentAccount[]
+  sales           Sale[]
+  payments        Payment[]
+  auditLogs       AuditLog[]
+
+  @@map("businesses")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  businessId   String
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         UserRole   @default(CASHIER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  business     Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  auditLogs    AuditLog[]
+
+  @@index([businessId])
+  @@map("users")
+}
+
+model PaymentAccount {
+  id                String        @id @default(uuid())
+  businessId        String
+  provider          String        // e.g., BANCOLOMBIA, MOCK, WOMPI
+  providerAccountId String
+  alias             String
+  lastFourDigits    String
+  status            AccountStatus @default(ACTIVE)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  business          Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+
+  @@index([businessId])
+  @@index([provider, lastFourDigits])
+  @@map("payment_accounts")
+}
+
+model Sale {
+  id         String     @id @default(uuid())
+  businessId String
+  saleNumber String     // e.g., MM-1058
+  amount     Float
+  currency   String     @default("COP")
+  status     SaleStatus @default(PENDING)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  payments   Payment[]
+
+  @@unique([businessId, saleNumber])
+  @@index([businessId])
+  @@map("sales")
+}
+
+model Payment {
+  id                String         @id @default(uuid())
+  businessId        String
+  paymentAccountId  String
+  saleId            String?
+  provider          String         // e.g., BANCOLOMBIA, MOCK
+  providerPaymentId String         // ID given by the provider
+  providerReference String         // e.g., transaction reference or approval number
+  amount            Float
+  currency          String         @default("COP")
+  status            PaymentStatus  @default(PENDING)
+  paidAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  business          Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  paymentAccount    PaymentAccount @relation(fields: [paymentAccountId], references: [id])
+  sale              Sale?          @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  events            PaymentEvent[]
+
+  @@index([businessId, status])
+  @@index([amount])
+  @@index([providerReference])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model PaymentEvent {
+  id                String                @id @default(uuid())
+  paymentId         String?
+  provider          String                // e.g., BANCOLOMBIA, MOCK
+  externalEventId   String?               // Unique event ID from webhook payload for idempotency
+  eventType         String                // e.g., payment.approved, webhook.received
+  rawPayload        String                // Raw body received from provider (text/json string)
+  signatureVerified Boolean               @default(false)
+  receivedAt        DateTime              @default(now())
+  processedAt       DateTime?
+  processingStatus  EventProcessingStatus @default(RECEIVED)
+
+  payment           Payment?              @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, externalEventId])
+  @@index([paymentId])
+  @@index([externalEventId])
+  @@index([receivedAt])
+  @@map("payment_events")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  businessId String
+  userId     String?
+  action     String   // e.g., ASSOCIATE_PAYMENT_TO_SALE, SIMULATE_PAYMENT
+  entityType String   // e.g., Payment, Sale, User
+  entityId   String
+  metadata   String?  // JSON serialized extra context
+  createdAt  DateTime @default(now())
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,25 @@
+{
+  "name": "megamundo-payment-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de verificación y confirmación automática de pagos para Comercializadora Megamundo",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:api": "npm run dev --workspace=@megamundo/api",
+    "dev:web": "npm run dev --workspace=@megamundo/web",
+    "dev": "npx concurrently -k -n \"api,web\" -c \"blue,green\" \"npm run dev:api\" \"npm run dev:web\"",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace=@megamundo/database",
+    "db:push": "npm run db:push --workspace=@megamundo/database",
+    "db:seed": "npm run db:seed --workspace=@megamundo/database"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4",
+    "typescript": "^5.4.5"
+  }
+}

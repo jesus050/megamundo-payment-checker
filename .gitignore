@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Entorno y Secretos
+.env
+.env.local
+.env.*.local
+*.log
+
+# Compilación y Artefactos
+dist/
+build/
+.system_generated/
+coverage/
+
+# IDE y Sistema
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vscode/
+.idea/
